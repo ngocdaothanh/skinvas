@@ -1,4 +1,4 @@
-# Skia Canvas
+# Skinvas
 
 A high-performance HTML5 Canvas API implementation for Node.js using the Rust language and the Skia rendering engine.
 
@@ -13,13 +13,13 @@ A high-performance HTML5 Canvas API implementation for Node.js using the Rust la
 ## Installation
 
 ```bash
-npm install skia-canvas
+npm install skinvas
 ```
 
 ## Usage
 
 ```javascript
-const { Canvas } = require('skia-canvas');
+const { Canvas } = require('skinvas');
 
 // Create a canvas
 const canvas = new Canvas(600, 400);
@@ -33,7 +33,7 @@ ctx.fillRect(100, 100, 200, 200);
 ctx.font = '30px Arial';
 ctx.fillStyle = 'white';
 ctx.textAlign = 'center';
-ctx.fillText('Hello Skia Canvas!', 200, 200);
+ctx.fillText('Hello Skinvas!', 200, 200);
 
 // Draw a path
 ctx.beginPath();
@@ -88,7 +88,7 @@ The context provides all the standard Canvas 2D drawing methods:
 ### Using Gradients
 
 ```javascript
-const { Canvas } = require('skia-canvas');
+const { Canvas } = require('skinvas');
 const canvas = new Canvas(400, 200);
 const ctx = canvas.getContext2d();
 
@@ -113,7 +113,7 @@ ctx.fillRect(0, 0, 400, 200);
 ### Using Path2D
 
 ```javascript
-const { Canvas, Path2D } = require('skia-canvas');
+const { Canvas, Path2D } = require('skinvas');
 const canvas = new Canvas(400, 400);
 const ctx = canvas.getContext2d();
 
@@ -133,7 +133,7 @@ ctx.fill(path2);
 ### Image Processing
 
 ```javascript
-const { Canvas, ImageData } = require('skia-canvas');
+const { Canvas, ImageData } = require('skinvas');
 const fs = require('fs');
 
 // Create a canvas and draw something on it
@@ -172,12 +172,6 @@ To build this library from source, you need:
 4. C++ compiler
 
 ```bash
-git clone https://github.com/username/skia-canvas.git
-cd skia-canvas
 npm install
 npm run build
 ```
-
-## License
-
-MIT

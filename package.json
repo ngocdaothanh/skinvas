@@ -1,10 +1,10 @@
 {
-  "name": "skia-canvas",
+  "name": "skinvas",
   "version": "0.1.0",
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "name": "skia-canvas",
+    "name": "skinvas",
     "triples": {
       "defaults": true,
       "additional": ["aarch64-apple-darwin"]

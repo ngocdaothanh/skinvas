@@ -67,7 +67,7 @@ describe('Canvas API', () => {
 
     ctx.fillStyle = 'black';
     ctx.font = '30px Arial';
-    ctx.fillText('Hello Skia Canvas!', 10, 50);
+    ctx.fillText('Hello Skinvas!', 10, 50);
 
     const buffer = canvas.toBuffer('image/png');
     fs.writeFileSync(path.join(outputDir, 'text.png'), buffer);

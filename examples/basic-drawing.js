@@ -18,7 +18,7 @@ ctx.fillRect(100, 100, 200, 200);
 ctx.font = '30px Arial';
 ctx.fillStyle = 'white';
 ctx.textAlign = 'center';
-ctx.fillText('Hello Skia Canvas!', 200, 200);
+ctx.fillText('Hello Skinvas!', 200, 200);
 
 // Draw a path
 ctx.beginPath();
