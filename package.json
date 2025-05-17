@@ -1,0 +1,38 @@
+{
+  "name": "skia-canvas",
+  "version": "0.1.0",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "skia-canvas",
+    "triples": {
+      "defaults": true,
+      "additional": ["aarch64-apple-darwin"]
+    }
+  },
+  "directories": {
+    "example": "examples",
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "napi build --release",
+    "build:debug": "napi build",
+    "test": "jest",
+    "prepublishOnly": "napi prepublish -t npm"
+  },
+  "keywords": [
+    "canvas",
+    "html5",
+    "skia",
+    "rust",
+    "nodejs"
+  ],
+  "author": "Ngoc Dao",
+  "license": "MIT",
+  "description": "HTML5 Canvas API implementation using Rust and Skia",
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.4",
+    "jest": "^29.5.0",
+    "typescript": "^5.0.4"
+  }
+}

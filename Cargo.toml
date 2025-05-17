@@ -1,0 +1,23 @@
+[package]
+name = "skia-canvas"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ngoc Dao"]
+description = "HTML5 Canvas API implementation using Rust and Skia"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "2.12.5", default-features = false, features = ["napi4"] }
+napi-derive = "2.12.5"
+skia-safe = "0.66.0"
+once_cell = "1.18.0"
+
+[build-dependencies]
+napi-build = "2.0.1"
+
+[profile.release]
+lto = true
+opt-level = 3
