@@ -5,6 +5,7 @@ use skia_safe::{
 };
 use std::sync::Mutex;
 use crate::canvas::{HTMLCanvas, get_skia_canvas};
+use crate::gradient::{LinearGradient, RadialGradient};
 
 #[napi(object)]
 pub struct TextMetrics {
@@ -108,28 +109,28 @@ pub struct CanvasRenderingContext2D {
 #[napi]
 impl CanvasRenderingContext2D {
   pub fn new(canvas: &HTMLCanvas) -> Result<Self> {
-    // Don't use transmute, simply store the pointer directly
-    let canvas_ptr = canvas as *const HTMLCanvas as *mut HTMLCanvas;
+    // Store as a raw pointer without attempting any transmute
+    let canvas_ptr = canvas as *const HTMLCanvas as usize as *mut HTMLCanvas;
 
     Ok(Self {
-      canvas_ptr,
-      fill_style: Mutex::new(String::from("black")),
-      stroke_style: Mutex::new(String::from("black")),
-      line_width: Mutex::new(1.0),
-      line_cap: Mutex::new(LineCap::Butt),
-      line_join: Mutex::new(LineJoin::Miter),
-      miter_limit: Mutex::new(10.0),
-      font: Mutex::new(String::from("10px sans-serif")),
-      text_align: Mutex::new(TextAlign::Start),
-      text_baseline: Mutex::new(TextBaseline::Alphabetic),
-      global_alpha: Mutex::new(1.0),
-      global_composite_operation: Mutex::new(CompositeOperation::SourceOver),
-      shadow_blur: Mutex::new(0.0),
-      shadow_color: Mutex::new(String::from("rgba(0,0,0,0)")),
-      shadow_offset_x: Mutex::new(0.0),
-      shadow_offset_y: Mutex::new(0.0),
-      transform_stack: Mutex::new(vec![Matrix::new_identity()]),
-      current_path: Mutex::new(Path::new()),
+        canvas_ptr,
+        fill_style: Mutex::new(String::from("black")),
+        stroke_style: Mutex::new(String::from("black")),
+        line_width: Mutex::new(1.0),
+        line_cap: Mutex::new(LineCap::Butt),
+        line_join: Mutex::new(LineJoin::Miter),
+        miter_limit: Mutex::new(10.0),
+        font: Mutex::new(String::from("10px sans-serif")),
+        text_align: Mutex::new(TextAlign::Start),
+        text_baseline: Mutex::new(TextBaseline::Alphabetic),
+        global_alpha: Mutex::new(1.0),
+        global_composite_operation: Mutex::new(CompositeOperation::SourceOver),
+        shadow_blur: Mutex::new(0.0),
+        shadow_color: Mutex::new(String::from("rgba(0,0,0,0)")),
+        shadow_offset_x: Mutex::new(0.0),
+        shadow_offset_y: Mutex::new(0.0),
+        transform_stack: Mutex::new(vec![Matrix::new_identity()]),
+        current_path: Mutex::new(Path::new()),
     })
   }
 
@@ -528,5 +529,15 @@ impl CanvasRenderingContext2D {
     let canvas = get_skia_canvas(canvas_ref)?;
     canvas.scale((x as f32, y as f32));
     Ok(())
+  }
+
+  #[napi]
+  pub fn create_linear_gradient(&self, x0: f64, y0: f64, x1: f64, y1: f64) -> Result<LinearGradient> {
+      Ok(LinearGradient::new(x0, y0, x1, y1))
+  }
+
+  #[napi]
+  pub fn create_radial_gradient(&self, x0: f64, y0: f64, r0: f64, x1: f64, y1: f64, r1: f64) -> Result<RadialGradient> {
+      Ok(RadialGradient::new(x0, y0, r0, x1, y1, r1))
   }
 }

@@ -115,6 +115,8 @@ export declare class CanvasRenderingContext2D {
   translate(x: number, y: number): void
   rotate(angle: number): void
   scale(x: number, y: number): void
+  createLinearGradient(x0: number, y0: number, x1: number, y1: number): LinearGradient
+  createRadialGradient(x0: number, y0: number, r0: number, x1: number, y1: number, r1: number): RadialGradient
 }
 export declare class ImageData {
   constructor(width: number, height: number)
