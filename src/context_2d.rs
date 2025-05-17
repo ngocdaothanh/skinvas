@@ -128,7 +128,7 @@ impl CanvasRenderingContext2D {
       shadow_color: Mutex::new(String::from("rgba(0,0,0,0)")),
       shadow_offset_x: Mutex::new(0.0),
       shadow_offset_y: Mutex::new(0.0),
-      transform_stack: Mutex::new(vec![Matrix::identity()]),
+      transform_stack: Mutex::new(vec![Matrix::new_identity()]),
       current_path: Mutex::new(Path::new()),
     })
   }
