@@ -1,7 +1,6 @@
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use skia_safe::{Canvas, Bitmap as SkBitmap, Shader, TileMode, Matrix, Paint};
-use crate::canvas::HTMLCanvas;
+use skia_safe::{Bitmap as SkBitmap, Shader, TileMode};
 use crate::image_data::ImageData;
 use std::sync::Mutex;
 
@@ -13,10 +12,14 @@ pub enum RepeatPattern {
   NoRepeat,
 }
 
-#[napi]
-pub struct CanvasPattern {
+struct CanvasPatternPrivate {
   bitmap: Mutex<SkBitmap>,
   repeat: Mutex<RepeatPattern>,
+}
+
+#[napi]
+pub struct CanvasPattern {
+  inner: CanvasPatternPrivate,
 }
 
 #[napi]
@@ -39,18 +42,20 @@ impl CanvasPattern {
     };
 
     Ok(Self {
-      bitmap: Mutex::new(bitmap),
-      repeat: Mutex::new(repeat),
+      inner: CanvasPatternPrivate {
+        bitmap: Mutex::new(bitmap),
+        repeat: Mutex::new(repeat),
+      }
     })
   }
 
   // Internal method to create a Skia shader
   pub(crate) fn create_shader(&self) -> Result<Shader> {
-    let bitmap = self.bitmap.lock().map_err(|_| {
+    let bitmap = self.inner.bitmap.lock().map_err(|_| {
       Error::new(Status::GenericFailure, "Failed to lock bitmap mutex")
     })?;
 
-    let repeat = self.repeat.lock().map_err(|_| {
+    let repeat = self.inner.repeat.lock().map_err(|_| {
       Error::new(Status::GenericFailure, "Failed to lock repeat mutex")
     })?;
 
@@ -64,7 +69,7 @@ impl CanvasPattern {
     let image = bitmap.as_image();
     let shader = image.to_shader(
       (tile_x, tile_y),
-      None,
+      skia_safe::SamplingOptions::default(),
       None,
     ).ok_or_else(|| {
       Error::new(Status::GenericFailure, "Failed to create shader from image")

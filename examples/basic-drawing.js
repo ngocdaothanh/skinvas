@@ -4,7 +4,7 @@ const path = require('path');
 
 // Create a canvas
 const canvas = new Canvas(600, 400);
-const ctx = canvas.getContext2d();
+const ctx = canvas.getContext2D();
 
 // Fill the background
 ctx.fillStyle = 'white';

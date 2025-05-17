@@ -27,7 +27,7 @@ describe('Canvas API', () => {
 
   test('draw rectangle', () => {
     const canvas = new Canvas(200, 100);
-    const ctx = canvas.getContext2d();
+    const ctx = canvas.getContext2D();
 
     ctx.fillStyle = 'blue';
     ctx.fillRect(10, 10, 50, 50);
@@ -40,7 +40,7 @@ describe('Canvas API', () => {
 
   test('draw path', () => {
     const canvas = new Canvas(200, 200);
-    const ctx = canvas.getContext2d();
+    const ctx = canvas.getContext2D();
 
     ctx.beginPath();
     ctx.moveTo(50, 50);
@@ -63,7 +63,7 @@ describe('Canvas API', () => {
 
   test('draw text', () => {
     const canvas = new Canvas(300, 100);
-    const ctx = canvas.getContext2d();
+    const ctx = canvas.getContext2D();
 
     ctx.fillStyle = 'black';
     ctx.font = '30px Arial';
@@ -77,7 +77,7 @@ describe('Canvas API', () => {
 
   test('draw circle', () => {
     const canvas = new Canvas(200, 200);
-    const ctx = canvas.getContext2d();
+    const ctx = canvas.getContext2D();
 
     ctx.beginPath();
     ctx.arc(100, 100, 50, 0, Math.PI * 2);
@@ -95,7 +95,7 @@ describe('Canvas API', () => {
 
   test('gradient', () => {
     const canvas = new Canvas(200, 100);
-    const ctx = canvas.getContext2d();
+    const ctx = canvas.getContext2D();
 
     // Create gradient
     const gradient = ctx.createLinearGradient(0, 0, 200, 0);

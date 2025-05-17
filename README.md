@@ -23,7 +23,7 @@ const { Canvas } = require('skinvas');
 
 // Create a canvas
 const canvas = new Canvas(600, 400);
-const ctx = canvas.getContext2d();
+const ctx = canvas.getContext2D();
 
 // Draw a rectangle
 ctx.fillStyle = 'blue';
@@ -67,7 +67,7 @@ class Canvas {
   set width(value: number);
   set height(value: number);
   resize(width: number, height: number): void;
-  getContext2d(): CanvasRenderingContext2D;
+  getContext2D(): CanvasRenderingContext2D;
   toBuffer(mimeType?: string, quality?: number): Buffer;
 }
 ```
@@ -90,7 +90,7 @@ The context provides all the standard Canvas 2D drawing methods:
 ```javascript
 const { Canvas } = require('skinvas');
 const canvas = new Canvas(400, 200);
-const ctx = canvas.getContext2d();
+const ctx = canvas.getContext2D();
 
 // Create a linear gradient
 const linearGradient = ctx.createLinearGradient(0, 0, 400, 0);
@@ -115,7 +115,7 @@ ctx.fillRect(0, 0, 400, 200);
 ```javascript
 const { Canvas, Path2D } = require('skinvas');
 const canvas = new Canvas(400, 400);
-const ctx = canvas.getContext2d();
+const ctx = canvas.getContext2D();
 
 const path = new Path2D();
 path.rect(10, 10, 100, 100);
@@ -138,7 +138,7 @@ const fs = require('fs');
 
 // Create a canvas and draw something on it
 const canvas = new Canvas(200, 200);
-const ctx = canvas.getContext2d();
+const ctx = canvas.getContext2D();
 ctx.fillStyle = 'red';
 ctx.fillRect(0, 0, 100, 100);
 ctx.fillStyle = 'blue';

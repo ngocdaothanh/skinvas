@@ -1,6 +1,6 @@
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use skia_safe::{Color, Color4f, Data, Bitmap as SkBitmap, AlphaType, ColorType, ImageInfo};
+use skia_safe::{Bitmap as SkBitmap, AlphaType, ImageInfo};
 
 #[napi(js_name = "ImageData")]
 pub struct ImageData {
@@ -14,7 +14,8 @@ impl ImageData {
   #[napi(constructor)]
   pub fn new(width: u32, height: u32) -> Result<Self> {
     let data_size = width as usize * height as usize * 4;
-    let data = Buffer::new_with_size(data_size);
+    // In newer version of napi, we use Buffer::from() instead of new_with_size
+    let data = Buffer::from(vec![0; data_size]);
 
     Ok(Self {
       width,
@@ -82,18 +83,35 @@ impl ImageData {
       None,
     );
 
-    bitmap.set_info(&info, None);
-    let pixels = unsafe { bitmap.get_pixels_mut().unwrap() };
+    let success = bitmap.set_info(&info, None);
+    if !success {
+      return Err(Error::new(Status::GenericFailure, "Failed to set bitmap info"));
+    }
+    // In newer skia-safe, we need to handle the bool return
+    bitmap.alloc_pixels();
 
-    // Copy data from Buffer to bitmap
-    let data_slice = self.data.as_ref();
-    pixels.copy_from_slice(data_slice);
+    // Check if allocation was successful
+    if bitmap.is_null() {
+      return Err(Error::new(Status::GenericFailure, "Failed to allocate pixels"));
+    }
+
+    // In newer version, install_pixels takes different parameters
+    unsafe {
+      let pixel_ptr = self.data.as_ptr() as *mut std::ffi::c_void;
+      bitmap.install_pixels(
+        &info,
+        pixel_ptr,
+        info.min_row_bytes(),
+      );
+    }
+
+    // No need for pixels copying, install_pixels does it
 
     Ok(bitmap)
   }
 
   // Internal method to create from Skia bitmap
-  pub(crate) fn from_skia_bitmap(bitmap: &SkBitmap) -> Result<Self> {
+  pub(crate) fn from_skia_bitmap(bitmap: &mut SkBitmap) -> Result<Self> {
     let width = bitmap.width() as u32;
     let height = bitmap.height() as u32;
 
@@ -102,9 +120,23 @@ impl ImageData {
     let row_bytes = bitmap.row_bytes();
 
     let data_size = width as usize * height as usize * 4;
-    let mut data = Buffer::new_with_size(data_size);
+    let mut data = Buffer::from(vec![0; data_size]);
 
-    let pixels = unsafe { bitmap.get_pixels().unwrap() };
+    // Check if the bitmap has pixels
+    if bitmap.is_null() {
+      return Err(Error::new(Status::GenericFailure, "Bitmap has no pixels"));
+    }
+
+    // Get pixels pointer safely, without trying to modify the bitmap
+    let pixels_ptr = bitmap.pixels();
+
+    // Create a slice from the pixels pointer
+    let src_pixels = unsafe {
+      std::slice::from_raw_parts(
+        pixels_ptr as *const u8,
+        height as usize * row_bytes
+      )
+    };
 
     // Copy data from bitmap to Buffer
     let data_slice = unsafe {
@@ -123,10 +155,10 @@ impl ImageData {
         let dst_pixel_offset = dst_offset + x * 4;
 
         // RGBA to RGBA
-        data_slice[dst_pixel_offset + 0] = pixels[src_pixel_offset + 0];
-        data_slice[dst_pixel_offset + 1] = pixels[src_pixel_offset + 1];
-        data_slice[dst_pixel_offset + 2] = pixels[src_pixel_offset + 2];
-        data_slice[dst_pixel_offset + 3] = pixels[src_pixel_offset + 3];
+        data_slice[dst_pixel_offset + 0] = src_pixels[src_pixel_offset + 0];
+        data_slice[dst_pixel_offset + 1] = src_pixels[src_pixel_offset + 1];
+        data_slice[dst_pixel_offset + 2] = src_pixels[src_pixel_offset + 2];
+        data_slice[dst_pixel_offset + 3] = src_pixels[src_pixel_offset + 3];
       }
     }
 

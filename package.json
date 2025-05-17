@@ -7,7 +7,9 @@
     "name": "skinvas",
     "triples": {
       "defaults": true,
-      "additional": ["aarch64-apple-darwin"]
+      "additional": [
+        "aarch64-apple-darwin"
+      ]
     }
   },
   "directories": {
@@ -32,6 +34,7 @@
   "description": "HTML5 Canvas API implementation using Rust and Skia",
   "devDependencies": {
     "@napi-rs/cli": "^2.18.4",
+    "@node-rs/helper": "^1.6.0",
     "jest": "^29.5.0",
     "typescript": "^5.0.4"
   }

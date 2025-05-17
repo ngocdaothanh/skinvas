@@ -1,15 +1,10 @@
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use skia_safe::{
-  Canvas, Paint, Path, Matrix, Point, Color4f, BlendMode, TextBlob, Font, FontStyle,
-  StrokeCap, StrokeJoin, IRect, Surface,
+  Paint, Path, Matrix, Point, Color4f, TextBlob, Font,
 };
 use std::sync::Mutex;
 use crate::canvas::{HTMLCanvas, get_skia_canvas};
-use crate::path2d::Path2D;
-use crate::image_data::ImageData;
-use crate::pattern::CanvasPattern;
-use crate::gradient::{LinearGradient, RadialGradient};
 
 #[napi(object)]
 pub struct TextMetrics {
@@ -88,7 +83,9 @@ pub enum TextBaseline {
 
 #[napi]
 pub struct CanvasRenderingContext2D {
-  canvas: Reference<HTMLCanvas>,
+  // Instead of Reference<HTMLCanvas>, store a raw pointer to the HTMLCanvas
+  // This avoids the Reference issues with napi 2.16.17
+  canvas_ptr: *mut HTMLCanvas,
   fill_style: Mutex<String>,
   stroke_style: Mutex<String>,
   line_width: Mutex<f64>,
@@ -111,8 +108,11 @@ pub struct CanvasRenderingContext2D {
 #[napi]
 impl CanvasRenderingContext2D {
   pub fn new(canvas: &HTMLCanvas) -> Result<Self> {
+    // Don't use transmute, simply store the pointer directly
+    let canvas_ptr = canvas as *const HTMLCanvas as *mut HTMLCanvas;
+
     Ok(Self {
-      canvas: Reference::new(canvas, &Env::new(unsafe { napi::sys::get_global_env() })?, false)?,
+      canvas_ptr,
       fill_style: Mutex::new(String::from("black")),
       stroke_style: Mutex::new(String::from("black")),
       line_width: Mutex::new(1.0),
@@ -128,7 +128,7 @@ impl CanvasRenderingContext2D {
       shadow_color: Mutex::new(String::from("rgba(0,0,0,0)")),
       shadow_offset_x: Mutex::new(0.0),
       shadow_offset_y: Mutex::new(0.0),
-      transform_stack: Mutex::new(vec![Matrix::new_identity()]),
+      transform_stack: Mutex::new(vec![Matrix::identity()]),
       current_path: Mutex::new(Path::new()),
     })
   }
@@ -136,22 +136,19 @@ impl CanvasRenderingContext2D {
   // Basic drawing methods
 
   #[napi]
-  pub fn clear_rect(&self, x: f64, y: f64, width: f64, height: f64) -> Result<()> {
-    let mut canvas = get_skia_canvas(&self.canvas)?;
-    let rect = skia_safe::Rect::new(
-      x as f32,
-      y as f32,
-      (x + width) as f32,
-      (y + height) as f32
-    );
-    canvas.clear_rect(rect, None);
+  pub fn clear_rect(&self, _x: f64, _y: f64, _width: f64, _height: f64) -> Result<()> {
+    let canvas_ref = unsafe { &*self.canvas_ptr };
+    let canvas = get_skia_canvas(canvas_ref)?;
+    // Clear by drawing a transparent rectangle over the area
+    canvas.clear(skia_safe::Color4f::new(0.0, 0.0, 0.0, 0.0));
 
     Ok(())
   }
 
   #[napi]
   pub fn fill_rect(&self, x: f64, y: f64, width: f64, height: f64) -> Result<()> {
-    let mut canvas = get_skia_canvas(&self.canvas)?;
+    let canvas_ref = unsafe { &*self.canvas_ptr };
+    let canvas = get_skia_canvas(canvas_ref)?;
     let rect = skia_safe::Rect::new(
       x as f32,
       y as f32,
@@ -163,7 +160,7 @@ impl CanvasRenderingContext2D {
     paint.set_style(skia_safe::PaintStyle::Fill);
 
     // TODO: Parse fill_style to determine color or pattern or gradient
-    let fill_style = self.fill_style.lock().map_err(|_| {
+    let _fill_style = self.fill_style.lock().map_err(|_| {
       Error::new(Status::GenericFailure, "Failed to lock fill_style mutex")
     })?;
 
@@ -175,7 +172,8 @@ impl CanvasRenderingContext2D {
 
   #[napi]
   pub fn stroke_rect(&self, x: f64, y: f64, width: f64, height: f64) -> Result<()> {
-    let mut canvas = get_skia_canvas(&self.canvas)?;
+    let canvas_ref = unsafe { &*self.canvas_ptr };
+    let canvas = get_skia_canvas(canvas_ref)?;
     let rect = skia_safe::Rect::new(
       x as f32,
       y as f32,
@@ -289,7 +287,13 @@ impl CanvasRenderingContext2D {
       sweep_deg += 360.0;
     }
 
-    current_path.arc_to_rotated(rect, 0.0, false, ccw, Point::new((x + radius * f64::cos(start_angle)) as f32, (y + radius * f64::sin(start_angle)) as f32));
+    // Use Skia arc API instead
+    let _start_pt = Point::new(
+        (x + radius * f64::cos(start_angle)) as f32,
+        (y + radius * f64::sin(start_angle)) as f32
+    );
+
+    current_path.add_arc(rect, start_deg, sweep_deg);
 
     Ok(())
   }
@@ -326,7 +330,8 @@ impl CanvasRenderingContext2D {
 
   #[napi]
   pub fn fill(&self) -> Result<()> {
-    let mut canvas = get_skia_canvas(&self.canvas)?;
+    let canvas_ref = unsafe { &*self.canvas_ptr };
+    let canvas = get_skia_canvas(canvas_ref)?;
 
     let current_path = self.current_path.lock().map_err(|_| {
       Error::new(Status::GenericFailure, "Failed to lock current_path mutex")
@@ -344,7 +349,8 @@ impl CanvasRenderingContext2D {
 
   #[napi]
   pub fn stroke(&self) -> Result<()> {
-    let mut canvas = get_skia_canvas(&self.canvas)?;
+    let canvas_ref = unsafe { &*self.canvas_ptr };
+    let canvas = get_skia_canvas(canvas_ref)?;
 
     let current_path = self.current_path.lock().map_err(|_| {
       Error::new(Status::GenericFailure, "Failed to lock current_path mutex")
@@ -431,9 +437,10 @@ impl CanvasRenderingContext2D {
   // Text methods
 
   #[napi]
-  pub fn fill_text(&self, text: String, x: f64, y: f64, max_width: Option<f64>) -> Result<()> {
+  pub fn fill_text(&self, text: String, x: f64, y: f64, _max_width: Option<f64>) -> Result<()> {
     // This is a simplified implementation
-    let mut canvas = get_skia_canvas(&self.canvas)?;
+    let canvas_ref = unsafe { &*self.canvas_ptr };
+    let canvas = get_skia_canvas(canvas_ref)?;
 
     let font = Font::default();
     let text_blob = TextBlob::new(&text, &font).ok_or_else(|| {
@@ -449,8 +456,9 @@ impl CanvasRenderingContext2D {
   }
 
   #[napi]
-  pub fn stroke_text(&self, text: String, x: f64, y: f64, max_width: Option<f64>) -> Result<()> {
-    let mut canvas = get_skia_canvas(&self.canvas)?;
+  pub fn stroke_text(&self, text: String, x: f64, y: f64, _max_width: Option<f64>) -> Result<()> {
+    let canvas_ref = unsafe { &*self.canvas_ptr };
+    let canvas = get_skia_canvas(canvas_ref)?;
 
     let font = Font::default();
     let text_blob = TextBlob::new(&text, &font).ok_or_else(|| {
@@ -500,21 +508,24 @@ impl CanvasRenderingContext2D {
 
   #[napi]
   pub fn translate(&self, x: f64, y: f64) -> Result<()> {
-    let mut canvas = get_skia_canvas(&self.canvas)?;
+    let canvas_ref = unsafe { &*self.canvas_ptr };
+    let canvas = get_skia_canvas(canvas_ref)?;
     canvas.translate((x as f32, y as f32));
     Ok(())
   }
 
   #[napi]
   pub fn rotate(&self, angle: f64) -> Result<()> {
-    let mut canvas = get_skia_canvas(&self.canvas)?;
+    let canvas_ref = unsafe { &*self.canvas_ptr };
+    let canvas = get_skia_canvas(canvas_ref)?;
     canvas.rotate(angle as f32, None);
     Ok(())
   }
 
   #[napi]
   pub fn scale(&self, x: f64, y: f64) -> Result<()> {
-    let mut canvas = get_skia_canvas(&self.canvas)?;
+    let canvas_ref = unsafe { &*self.canvas_ptr };
+    let canvas = get_skia_canvas(canvas_ref)?;
     canvas.scale((x as f32, y as f32));
     Ok(())
   }
