@@ -57,13 +57,11 @@ impl LinearGradient {
       positions.push(stop.offset as f32);
     }
 
-    let points = (
-      Point::new(self.x0 as f32, self.y0 as f32),
-      Point::new(self.x1 as f32, self.y1 as f32),
-    );
+    let point1 = Point::new(self.x0 as f32, self.y0 as f32);
+    let point2 = Point::new(self.x1 as f32, self.y1 as f32);
 
     let shader = gradient_shader::linear(
-      points,
+      (point1, point2),
       colors.as_slice(),
       Some(positions.as_slice()),
       TileMode::Clamp,

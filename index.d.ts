@@ -66,15 +66,15 @@ export const enum TextBaseline {
   Ideographic = 'Ideographic',
   Bottom = 'Bottom'
 }
+export interface ColorStop {
+  offset: number
+  color: string
+}
 export const enum RepeatPattern {
   Repeat = 'Repeat',
   RepeatX = 'RepeatX',
   RepeatY = 'RepeatY',
   NoRepeat = 'NoRepeat'
-}
-export interface ColorStop {
-  offset: number
-  color: string
 }
 export declare function version(): string
 export type HTMLCanvas = Canvas
@@ -104,6 +104,8 @@ export declare class CanvasRenderingContext2D {
   stroke(): void
   set fillStyle()
   set fillStyle(value: string)
+  setLinearGradientFillStyle(gradient: LinearGradient): void
+  setRadialGradientFillStyle(gradient: RadialGradient): void
   get strokeStyle(): string
   set strokeStyle(value: string)
   get lineWidth(): number
@@ -118,12 +120,16 @@ export declare class CanvasRenderingContext2D {
   createLinearGradient(x0: number, y0: number, x1: number, y1: number): LinearGradient
   createRadialGradient(x0: number, y0: number, r0: number, x1: number, y1: number, r1: number): RadialGradient
 }
-export declare class ImageData {
-  constructor(width: number, height: number)
-  static fromBuffer(data: Buffer, width: number, height?: number | undefined | null): ImageData
-  get width(): number
-  get height(): number
-  get data(): Buffer
+export declare class LinearGradient {
+  constructor(x0: number, y0: number, x1: number, y1: number)
+  addColorStop(offset: number, color: string): void
+}
+export declare class RadialGradient {
+  constructor(x0: number, y0: number, r0: number, x1: number, y1: number, r1: number)
+  addColorStop(offset: number, color: string): void
+}
+export declare class CanvasPattern {
+  constructor(imageData: ImageData, repeatPattern?: string | undefined | null)
 }
 export declare class Path2D {
   constructor(path?: Path2D | undefined | null)
@@ -137,14 +143,10 @@ export declare class Path2D {
   rect(x: number, y: number, width: number, height: number): void
   ellipse(x: number, y: number, radiusX: number, radiusY: number, rotation: number, startAngle: number, endAngle: number, counterClockwise?: boolean | undefined | null): void
 }
-export declare class CanvasPattern {
-  constructor(imageData: ImageData, repeatPattern?: string | undefined | null)
-}
-export declare class LinearGradient {
-  constructor(x0: number, y0: number, x1: number, y1: number)
-  addColorStop(offset: number, color: string): void
-}
-export declare class RadialGradient {
-  constructor(x0: number, y0: number, r0: number, x1: number, y1: number, r1: number)
-  addColorStop(offset: number, color: string): void
+export declare class ImageData {
+  constructor(width: number, height: number)
+  static fromBuffer(data: Buffer, width: number, height?: number | undefined | null): ImageData
+  get width(): number
+  get height(): number
+  get data(): Buffer
 }

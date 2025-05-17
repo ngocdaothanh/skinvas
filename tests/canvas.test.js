@@ -104,7 +104,7 @@ describe('Canvas API', () => {
     gradient.addColorStop(1, 'blue');
 
     // Fill with gradient
-    ctx.fillStyle = gradient;
+    ctx.setLinearGradientFillStyle(gradient);
     ctx.fillRect(0, 0, 200, 100);
 
     const buffer = canvas.toBuffer('image/png');

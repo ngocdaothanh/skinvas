@@ -2,19 +2,18 @@
 
 use napi_derive::napi;
 
-mod canvas;
-mod context_2d;
-mod image_data;
-mod path2d;
-mod pattern;
-mod gradient;
+pub mod canvas;
+pub mod context_2d;
+pub mod gradient;
+pub mod color_stop;
+pub mod pattern;
+pub mod path2d;
+pub mod image_data;
+pub mod linear_gradient;
+pub mod radial_gradient;
 
-pub use canvas::*;
-pub use context_2d::*;
-pub use image_data::*;
-pub use path2d::*;
-pub use pattern::*;
-pub use gradient::*;
+// Re-export the gradient types for easier access
+pub use gradient::{LinearGradient, RadialGradient};
 
 #[napi]
 pub fn version() -> String {

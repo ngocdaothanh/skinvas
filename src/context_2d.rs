@@ -1,7 +1,7 @@
-use napi::bindgen_prelude::*;
+use napi::bindgen_prelude::{Either, Error, Result, Status};
 use napi_derive::napi;
 use skia_safe::{
-  Paint, Path, Matrix, Point, Color4f, TextBlob, Font,
+  Paint, Path, Matrix, Point, Color4f, TextBlob, Font, Shader,
 };
 use std::sync::Mutex;
 use crate::canvas::{HTMLCanvas, get_skia_canvas};
@@ -87,7 +87,7 @@ pub struct CanvasRenderingContext2D {
   // Instead of Reference<HTMLCanvas>, store a raw pointer to the HTMLCanvas
   // This avoids the Reference issues with napi 2.16.17
   canvas_ptr: *mut HTMLCanvas,
-  fill_style: Mutex<String>,
+  fill_style_type: Mutex<FillStyleType>,
   stroke_style: Mutex<String>,
   line_width: Mutex<f64>,
   line_cap: Mutex<LineCap>,
@@ -106,6 +106,14 @@ pub struct CanvasRenderingContext2D {
   current_path: Mutex<Path>,
 }
 
+enum FillStyleType {
+    Color(String),
+    LinearGradient(Box<LinearGradient>),
+    RadialGradient(Box<RadialGradient>),
+    Shader(Shader),
+    // Pattern would also be added here in a complete implementation
+}
+
 #[napi]
 impl CanvasRenderingContext2D {
   pub fn new(canvas: &HTMLCanvas) -> Result<Self> {
@@ -114,7 +122,7 @@ impl CanvasRenderingContext2D {
 
     Ok(Self {
         canvas_ptr,
-        fill_style: Mutex::new(String::from("black")),
+        fill_style_type: Mutex::new(FillStyleType::Color("black".to_string())),
         stroke_style: Mutex::new(String::from("black")),
         line_width: Mutex::new(1.0),
         line_cap: Mutex::new(LineCap::Butt),
@@ -129,7 +137,7 @@ impl CanvasRenderingContext2D {
         shadow_color: Mutex::new(String::from("rgba(0,0,0,0)")),
         shadow_offset_x: Mutex::new(0.0),
         shadow_offset_y: Mutex::new(0.0),
-        transform_stack: Mutex::new(vec![Matrix::new_identity()]),
+        transform_stack: Mutex::new(vec![Matrix::default()]),
         current_path: Mutex::new(Path::new()),
     })
   }
@@ -157,15 +165,33 @@ impl CanvasRenderingContext2D {
       (y + height) as f32
     );
 
+    let fill_style_type = self.fill_style_type.lock().map_err(|_| {
+      Error::new(Status::GenericFailure, "Failed to lock fill_style_type mutex")
+    })?;
+
     let mut paint = Paint::new(Color4f::new(0.0, 0.0, 0.0, 1.0), None);
     paint.set_style(skia_safe::PaintStyle::Fill);
 
-    // TODO: Parse fill_style to determine color or pattern or gradient
-    let _fill_style = self.fill_style.lock().map_err(|_| {
-      Error::new(Status::GenericFailure, "Failed to lock fill_style mutex")
-    })?;
+    // Set the shader based on fill style
+    match &*fill_style_type {
+      FillStyleType::Color(_color) => {
+        // For simplicity, just use black
+        // In a complete implementation, you'd parse the color string
+        paint.set_color4f(Color4f::new(0.0, 0.0, 0.0, 1.0), None);
+      },
+      FillStyleType::LinearGradient(gradient) => {
+        let shader = gradient.create_shader()?;
+        paint.set_shader(shader);
+      },
+      FillStyleType::RadialGradient(gradient) => {
+        let shader = gradient.create_shader()?;
+        paint.set_shader(shader);
+      },
+      FillStyleType::Shader(shader) => {
+        paint.set_shader(shader.clone());
+      },
+    }
 
-    // Simple implementation with default black color
     canvas.draw_rect(rect, &paint);
 
     Ok(())
@@ -338,10 +364,32 @@ impl CanvasRenderingContext2D {
       Error::new(Status::GenericFailure, "Failed to lock current_path mutex")
     })?;
 
+    let fill_style_type = self.fill_style_type.lock().map_err(|_| {
+      Error::new(Status::GenericFailure, "Failed to lock fill_style_type mutex")
+    })?;
+
     let mut paint = Paint::new(Color4f::new(0.0, 0.0, 0.0, 1.0), None);
     paint.set_style(skia_safe::PaintStyle::Fill);
 
-    // TODO: Parse fill_style to determine color or pattern or gradient
+    // Set the shader based on fill style
+    match &*fill_style_type {
+      FillStyleType::Color(_color) => {
+        // For simplicity, just use black
+        // In a complete implementation, you'd parse the color string
+        paint.set_color4f(Color4f::new(0.0, 0.0, 0.0, 1.0), None);
+      },
+      FillStyleType::LinearGradient(gradient) => {
+        let shader = gradient.create_shader()?;
+        paint.set_shader(shader);
+      },
+      FillStyleType::RadialGradient(gradient) => {
+        let shader = gradient.create_shader()?;
+        paint.set_shader(shader);
+      },
+      FillStyleType::Shader(shader) => {
+        paint.set_shader(shader.clone());
+      },
+    }
 
     canvas.draw_path(&current_path, &paint);
 
@@ -377,20 +425,55 @@ impl CanvasRenderingContext2D {
 
   #[napi(getter, setter)]
   pub fn fill_style(&self) -> Result<String> {
-    let fill_style = self.fill_style.lock().map_err(|_| {
-      Error::new(Status::GenericFailure, "Failed to lock fill_style mutex")
+    let fill_style_type = self.fill_style_type.lock().map_err(|_| {
+      Error::new(Status::GenericFailure, "Failed to lock fill_style_type mutex")
     })?;
 
-    Ok(fill_style.clone())
+    Ok(match *fill_style_type {
+      FillStyleType::Color(ref color) => color.clone(),
+      FillStyleType::LinearGradient(_) => "linear-gradient".to_string(),
+      FillStyleType::RadialGradient(_) => "radial-gradient".to_string(),
+      FillStyleType::Shader(_) => "shader".to_string(),
+    })
   }
 
   #[napi(setter)]
   pub fn set_fill_style(&self, value: String) -> Result<()> {
-    let mut fill_style = self.fill_style.lock().map_err(|_| {
-      Error::new(Status::GenericFailure, "Failed to lock fill_style mutex")
+    let mut fill_style_type = self.fill_style_type.lock().map_err(|_| {
+      Error::new(Status::GenericFailure, "Failed to lock fill_style_type mutex")
     })?;
 
-    *fill_style = value;
+    *fill_style_type = FillStyleType::Color(value);
+
+    Ok(())
+  }
+
+  #[napi(js_name = "setLinearGradientFillStyle")]
+  pub fn set_linear_gradient_fill_style(&self, gradient: &LinearGradient) -> Result<()> {
+    let mut fill_style_type = self.fill_style_type.lock().map_err(|_| {
+      Error::new(Status::GenericFailure, "Failed to lock fill_style_type mutex")
+    })?;
+
+    // Create a shader directly from the gradient
+    let shader = gradient.create_shader()?;
+
+    // Store the shader in FillStyleType
+    *fill_style_type = FillStyleType::Shader(shader);
+
+    Ok(())
+  }
+
+  #[napi(js_name = "setRadialGradientFillStyle")]
+  pub fn set_radial_gradient_fill_style(&self, gradient: &RadialGradient) -> Result<()> {
+    let mut fill_style_type = self.fill_style_type.lock().map_err(|_| {
+      Error::new(Status::GenericFailure, "Failed to lock fill_style_type mutex")
+    })?;
+
+    // Create a shader directly from the gradient
+    let shader = gradient.create_shader()?;
+
+    // Store the shader in FillStyleType
+    *fill_style_type = FillStyleType::Shader(shader);
 
     Ok(())
   }
@@ -488,7 +571,8 @@ impl CanvasRenderingContext2D {
       Error::new(Status::GenericFailure, "Failed to lock transform_stack mutex")
     })?;
 
-    let current_transform = transform_stack.last().cloned().unwrap_or_else(Matrix::new_identity);
+    // Use default() instead of new_identity()
+    let current_transform = transform_stack.last().cloned().unwrap_or_else(|| Matrix::default());
     transform_stack.push(current_transform);
 
     Ok(())

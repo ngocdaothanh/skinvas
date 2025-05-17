@@ -1,8 +1,7 @@
 use napi::bindgen_prelude::*;
-use napi_derive::napi;
 
-#[napi(object)]
+#[derive(Clone)]
 pub struct ColorStop {
-  pub offset: f64,
-  pub color: String,
+    pub offset: f64,
+    pub color: String,
 }
